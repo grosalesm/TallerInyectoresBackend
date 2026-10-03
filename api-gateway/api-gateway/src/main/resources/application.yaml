@@ -1,0 +1,53 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+      routes:
+        - id: ms-auth
+          uri: lb://ms-auth
+          predicates:
+            - Path=/api/auth/**,/api/usuario/**
+
+        - id: ms-clientes
+          uri: lb://ms-clientes
+          predicates:
+            - Path=/api/cliente/**,/api/catalogo/clientes
+
+        - id: ms-catalogos
+          uri: lb://ms-catalogos
+          predicates:
+            - Path=/api/inyector/**,/api/servicio/**,/api/mecanico/**,/api/catalogo/inyectores,/api/catalogo/servicios,/api/catalogo/mecanicos
+
+        - id: ms-ordenes
+          uri: lb://ms-ordenes
+          predicates:
+            - Path=/api/orden/**
+
+        - id: ms-facturacion
+          uri: lb://ms-facturacion
+          predicates:
+            - Path=/api/recibo/**
+
+        - id: ms-reportes
+          uri: lb://ms-reportes
+          predicates:
+            - Path=/api/reporte/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+jwt:
+  secret: "aB3xK9mP2qR7tY5wZ8nL4cV6bN1jH0gF3dS9aQ2eW5rT8yU1iO4pL7kM0nJ6hB"
+
+cors:
+  allowed-origins: "http://localhost:4200"

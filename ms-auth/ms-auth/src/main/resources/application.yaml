@@ -1,0 +1,20 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: ms-auth
+
+  r2dbc:
+    url: r2dbc:mysql://localhost:3306/taller_auth
+    username: root
+    password: mysql
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+jwt:
+  secret: "aB3xK9mP2qR7tY5wZ8nL4cV6bN1jH0gF3dS9aQ2eW5rT8yU1iO4pL7kM0nJ6hB"
+  expiration-days: 7

@@ -1,0 +1,31 @@
+<project version="4">
+  <component name="ExternalStorageConfigurationManager" enabled="true" />
+  <component name="MavenProjectsManager">
+    <option name="originalFiles">
+      <list>
+        <option value="$PROJECT_DIR$/eureka-server/pom.xml" />
+        <option value="$PROJECT_DIR$/../api-gateway/api-gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/../taller-ms-servicio/pom.xml" />
+        <option value="$PROJECT_DIR$/../order-servicio/pom.xml" />
+        <option value="$PROJECT_DIR$/../catalog-service/catolog-servicio/pom.xml" />
+        <option value="$PROJECT_DIR$/../catalog-servicio/pom.xml" />
+        <option value="$PROJECT_DIR$/../ms-ordenes/ms-ordenes/pom.xml" />
+        <option value="$PROJECT_DIR$/../ms-clientes/pom.xml" />
+        <option value="$PROJECT_DIR$/../ms-catalogos/ms-catalogos/pom.xml" />
+        <option value="$PROJECT_DIR$/../ms-facturacion/ms-facturacion/pom.xml" />
+        <option value="$PROJECT_DIR$/../ms-reportes/ms-reportes/pom.xml" />
+        <option value="$PROJECT_DIR$/../ms-auth/ms-auth/pom.xml" />
+      </list>
+    </option>
+    <option name="ignoredFiles">
+      <set>
+        <option value="$PROJECT_DIR$/../catalog-servicio/pom.xml" />
+        <option value="$PROJECT_DIR$/../order-servicio/pom.xml" />
+        <option value="$PROJECT_DIR$/../taller-ms-servicio/pom.xml" />
+      </set>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" project-jdk-name="temurin-21" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/out" />
+  </component>
+</project>
