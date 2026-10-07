@@ -1,27 +1,28 @@
 package com.taller.facturacion.infrastructure.persistence.adapter;
 
 import com.taller.facturacion.application.port.outservice.MecanicoOutService;
+import com.taller.facturacion.infrastructure.client.MecanicoFeignClient;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 @Component
 @RequiredArgsConstructor
 public class MecanicoAdapter implements MecanicoOutService {
 
-    private final WebClient.Builder webClientBuilder;
+    private final MecanicoFeignClient mecanicoFeignClient;
 
     @Override
-    public Mono<String> obtenerNombreMecanico(Integer idMecanico) {
-        return webClientBuilder.build()
-                .get()
-                .uri("lb://ms-catalogos/api/mecanico/{id}", idMecanico)
-                .retrieve()
-                .bodyToMono(MecanicoDto.class)
-                .map(m -> (m.nombres() + " " + m.apellidos()).trim())
-                .onErrorReturn("");
+    @CircuitBreaker(name = "ms-catalogos", fallbackMethod = "obtenerNombreMecanicoFallback")
+    public String obtenerNombreMecanico(Integer idMecanico) {
+        MecanicoFeignClient.MecanicoDto dto = mecanicoFeignClient.obtenerMecanico(idMecanico);
+        if (dto == null) return "";
+        String nombres = dto.nombres() != null ? dto.nombres() : "";
+        String apellidos = dto.apellidos() != null ? dto.apellidos() : "";
+        return (nombres + " " + apellidos).trim();
     }
 
-    public record MecanicoDto(Integer idMecanico, String nombres, String apellidos) {}
+    public String obtenerNombreMecanicoFallback(Integer idMecanico, Throwable t) {
+        return "";
+    }
 }

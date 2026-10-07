@@ -1,31 +1,36 @@
 package com.taller.catalogos.infrastructure.persistence.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table("inyectores")
+@Entity
+@Table(name = "inyectores")
 public class InyectorEntity {
 
     @Id
-    @Column("id_inyector")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_inyector")
     private Integer idInyector;
 
-    @Column("modelo")
+    @Column(name = "modelo", nullable = false)
     private String modelo;
 
-    @Column("marca")
+    @Column(name = "marca")
     private String marca;
 
-    @Column("descripcion")
+    @Column(name = "descripcion")
     private String descripcion;
 
-    @Column("activo")
+    @Column(name = "activo")
     private Boolean activo;
 }

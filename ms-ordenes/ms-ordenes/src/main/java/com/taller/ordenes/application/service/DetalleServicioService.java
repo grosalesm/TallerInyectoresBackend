@@ -8,8 +8,9 @@ import com.taller.ordenes.domain.bean.DetalleServicio;
 import com.taller.ordenes.domain.constraint.DetalleServicioConstraints;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -21,49 +22,43 @@ public class DetalleServicioService implements DetalleServicioUseCase {
     private final DetalleServicioConstraints detalleServicioConstraints;
 
     @Override
-    public Flux<DetalleServicio> listarPorOrden(Integer idOrden) {
-        return detalleServicioOutService.listarPorOrden(idOrden)
-                .flatMap(this::enriquecerConDatosCatalogo);
+    public List<DetalleServicio> listarPorOrden(Integer idOrden) {
+        List<DetalleServicio> lista = detalleServicioOutService.listarPorOrden(idOrden);
+        lista.forEach(this::enriquecerConDatosCatalogo);
+        return lista;
     }
 
     @Override
-    public Mono<Void> agregar(Integer idOrden, DetalleServicio detalle) {
+    @Transactional
+    public void agregar(Integer idOrden, DetalleServicio detalle) {
         if (!detalleServicioConstraints.validar(detalle)) {
-            return Mono.error(new IllegalArgumentException("Datos del servicio inválidos."));
+            throw new IllegalArgumentException("Datos del servicio inválidos.");
         }
-        return catalogoOutService.existeServicio(detalle.getIdServicio())
-                .flatMap(existe -> {
-                    if (Boolean.FALSE.equals(existe)) {
-                        return Mono.error(new IllegalArgumentException("El servicio no existe."));
-                    }
-                    detalle.setIdOrden(idOrden);
-                    return detalleServicioOutService.guardar(detalle);
-                })
-                .then(recalcularTotal(idOrden));
+        if (!catalogoOutService.existeServicio(detalle.getIdServicio())) {
+            throw new IllegalArgumentException("El servicio no existe.");
+        }
+        detalle.setIdOrden(idOrden);
+        detalleServicioOutService.guardar(detalle);
+        recalcularTotal(idOrden);
     }
 
     @Override
-    public Mono<Void> eliminar(Integer idDetalle) {
-        return detalleServicioOutService.obtenerPorId(idDetalle)
-                .switchIfEmpty(Mono.error(new IllegalArgumentException("Detalle no encontrado.")))
-                .flatMap(detalle -> {
-                    Integer idOrden = detalle.getIdOrden();
-                    return detalleServicioOutService.eliminar(idDetalle)
-                            .then(recalcularTotal(idOrden));
-                });
+    @Transactional
+    public void eliminar(Integer idDetalle) {
+        DetalleServicio detalle = detalleServicioOutService.obtenerPorId(idDetalle)
+                .orElseThrow(() -> new IllegalArgumentException("Detalle no encontrado."));
+        Integer idOrden = detalle.getIdOrden();
+        detalleServicioOutService.eliminar(idDetalle);
+        recalcularTotal(idOrden);
     }
 
-    private Mono<DetalleServicio> enriquecerConDatosCatalogo(DetalleServicio detalle) {
-        return catalogoOutService.obtenerNombreServicio(detalle.getIdServicio())
-                .defaultIfEmpty("")
-                .map(nombre -> {
-                    detalle.setNombreServicio(nombre);
-                    return detalle;
-                });
+    private void enriquecerConDatosCatalogo(DetalleServicio detalle) {
+        String nombre = catalogoOutService.obtenerNombreServicio(detalle.getIdServicio());
+        detalle.setNombreServicio(nombre != null ? nombre : "");
     }
 
-    private Mono<Void> recalcularTotal(Integer idOrden) {
-        return ordenOutService.calcularTotalPorOrden(idOrden)
-                .flatMap(total -> ordenOutService.actualizarTotal(idOrden, total));
+    private void recalcularTotal(Integer idOrden) {
+        Double total = ordenOutService.calcularTotalPorOrden(idOrden);
+        ordenOutService.actualizarTotal(idOrden, total);
     }
 }

@@ -7,8 +7,10 @@ import com.taller.catalogos.domain.bean.Servicio;
 import com.taller.catalogos.domain.constraint.ServicioConstraints;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -19,38 +21,42 @@ public class ServicioService implements ServicioUseCase {
     private final CatalogoEventOutService catalogoEventOutService;
 
     @Override
-    public Flux<Servicio> listar() {
+    public List<Servicio> listar() {
         return servicioOutService.listar();
     }
 
     @Override
-    public Flux<Servicio> listarActivos() {
+    public List<Servicio> listarActivos() {
         return servicioOutService.listarActivos();
     }
 
     @Override
-    public Mono<Servicio> obtenerPorId(Integer id) {
+    public Optional<Servicio> obtenerPorId(Integer id) {
         return servicioOutService.obtenerPorId(id);
     }
 
     @Override
-    public Mono<Servicio> guardar(Servicio servicio) {
+    @Transactional
+    public Servicio guardar(Servicio servicio) {
         if (!servicioConstraints.validar(servicio)) {
-            return Mono.error(new IllegalArgumentException("El nombre es obligatorio y el precio debe ser mayor a cero."));
+            throw new IllegalArgumentException("El nombre es obligatorio y el precio debe ser mayor a cero.");
         }
         boolean esNuevo = servicio.getIdServicio() == null || servicio.getIdServicio() == 0;
         if (esNuevo) {
-            servicio.setIdServicio(0);
+            servicio.setIdServicio(null);
             if (servicio.getActivo() == null) servicio.setActivo(true);
-            return servicioOutService.insertar(servicio)
-                    .doOnNext(catalogoEventOutService::publicarServicioActualizado);
+            Servicio creado = servicioOutService.insertar(servicio);
+            catalogoEventOutService.publicarServicioActualizado(creado);
+            return creado;
         }
-        return servicioOutService.actualizar(servicio)
-                .doOnNext(catalogoEventOutService::publicarServicioActualizado);
+        Servicio actualizado = servicioOutService.actualizar(servicio);
+        catalogoEventOutService.publicarServicioActualizado(actualizado);
+        return actualizado;
     }
 
     @Override
-    public Mono<Void> eliminar(Integer id) {
-        return servicioOutService.eliminar(id);
+    @Transactional
+    public void eliminar(Integer id) {
+        servicioOutService.eliminar(id);
     }
 }

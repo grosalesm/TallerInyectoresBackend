@@ -8,9 +8,16 @@ import com.taller.catalogos.infrastructure.mapper.CatalogoWebMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/servicio")
@@ -21,40 +28,38 @@ public class ServicioController {
     private final CatalogoWebMapper mapper;
 
     @GetMapping
-    public Flux<ServicioResponse> listar() {
-        return servicioUseCase.listar().map(mapper::toResponse);
+    public List<ServicioResponse> listar() {
+        return servicioUseCase.listar().stream().map(mapper::toResponse).toList();
     }
 
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<ServicioResponse>> obtenerPorId(@PathVariable Integer id) {
+    public ResponseEntity<ServicioResponse> obtenerPorId(@PathVariable Integer id) {
         return servicioUseCase.obtenerPorId(id)
                 .map(mapper::toResponse)
                 .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public Mono<ResponseEntity<ServicioResponse>> crear(@Valid @RequestBody ServicioRequest request) {
+    public ResponseEntity<ServicioResponse> crear(@Valid @RequestBody ServicioRequest request) {
         Servicio servicio = mapper.toDomain(request);
-        servicio.setIdServicio(0);
-        return servicioUseCase.guardar(servicio)
-                .map(mapper::toResponse)
-                .map(ResponseEntity::ok);
+        servicio.setIdServicio(null);
+        Servicio creado = servicioUseCase.guardar(servicio);
+        return ResponseEntity.ok(mapper.toResponse(creado));
     }
 
     @PutMapping("/{id}")
-    public Mono<ResponseEntity<ServicioResponse>> actualizar(@PathVariable Integer id,
-                                                             @Valid @RequestBody ServicioRequest request) {
+    public ResponseEntity<ServicioResponse> actualizar(@PathVariable Integer id,
+                                                       @Valid @RequestBody ServicioRequest request) {
         Servicio servicio = mapper.toDomain(request);
         servicio.setIdServicio(id);
-        return servicioUseCase.guardar(servicio)
-                .map(mapper::toResponse)
-                .map(ResponseEntity::ok);
+        Servicio actualizado = servicioUseCase.guardar(servicio);
+        return ResponseEntity.ok(mapper.toResponse(actualizado));
     }
 
     @DeleteMapping("/{id}")
-    public Mono<ResponseEntity<Void>> eliminar(@PathVariable Integer id) {
-        return servicioUseCase.eliminar(id)
-                .thenReturn(ResponseEntity.noContent().build());
+    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
+        servicioUseCase.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }

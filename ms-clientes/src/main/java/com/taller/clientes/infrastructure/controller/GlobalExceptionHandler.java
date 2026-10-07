@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -18,6 +19,16 @@ public class GlobalExceptionHandler {
                 "status", 400,
                 "error", "Bad Request",
                 "mensaje", ex.getMessage()
+        ));
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    public ResponseEntity<Map<String, Object>> handleNotFound(NoSuchElementException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "timestamp", LocalDateTime.now().toString(),
+                "status", 404,
+                "error", "Not Found",
+                "mensaje", ex.getMessage() != null ? ex.getMessage() : "Recurso no encontrado"
         ));
     }
 

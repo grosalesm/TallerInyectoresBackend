@@ -18,9 +18,16 @@ import com.taller.ordenes.infrastructure.mapper.OrdenWebMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/orden")
@@ -35,87 +42,84 @@ public class OrdenController {
     private final DetalleServicioMapper detalleServicioMapper;
 
     @GetMapping
-    public Flux<OrdenResponse> listar() {
-        return ordenUseCase.listar().map(ordenWebMapper::toResponse);
+    public List<OrdenResponse> listar() {
+        return ordenUseCase.listar().stream().map(ordenWebMapper::toResponse).toList();
     }
 
     @GetMapping("/estado/{estado}")
-    public Flux<OrdenResponse> listarPorEstado(@PathVariable String estado) {
-        return ordenUseCase.listarPorEstado(estado).map(ordenWebMapper::toResponse);
+    public List<OrdenResponse> listarPorEstado(@PathVariable String estado) {
+        return ordenUseCase.listarPorEstado(estado).stream().map(ordenWebMapper::toResponse).toList();
     }
 
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<OrdenResponse>> obtenerPorId(@PathVariable Integer id) {
+    public ResponseEntity<OrdenResponse> obtenerPorId(@PathVariable Integer id) {
         return ordenUseCase.obtenerPorId(id)
-                .flatMap(orden -> Mono.zip(
-                        detalleInyectorUseCase.listarPorOrden(id).collectList(),
-                        detalleServicioUseCase.listarPorOrden(id).collectList()
-                ).map(tuple -> {
+                .map(orden -> {
                     OrdenResponse response = ordenWebMapper.toResponse(orden);
-                    response.setInyectores(detalleInyectorMapper.toResponseList(tuple.getT1()));
-                    response.setServicios(detalleServicioMapper.toResponseList(tuple.getT2()));
+                    response.setInyectores(detalleInyectorMapper.toResponseList(
+                            detalleInyectorUseCase.listarPorOrden(id)));
+                    response.setServicios(detalleServicioMapper.toResponseList(
+                            detalleServicioUseCase.listarPorOrden(id)));
                     return ResponseEntity.ok(response);
-                }))
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{id}/inyectores")
-    public Flux<DetalleInyector> listarInyectores(@PathVariable Integer id) {
+    public List<DetalleInyector> listarInyectores(@PathVariable Integer id) {
         return detalleInyectorUseCase.listarPorOrden(id);
     }
 
     @GetMapping("/{id}/servicios")
-    public Flux<DetalleServicio> listarServicios(@PathVariable Integer id) {
+    public List<DetalleServicio> listarServicios(@PathVariable Integer id) {
         return detalleServicioUseCase.listarPorOrden(id);
     }
 
     @PostMapping
-    public Mono<ResponseEntity<OrdenResponse>> crear(@Valid @RequestBody OrdenRequest request) {
+    public ResponseEntity<OrdenResponse> crear(@Valid @RequestBody OrdenRequest request) {
         Orden orden = ordenWebMapper.toDomain(request);
-        orden.setIdOrden(0);
-        return ordenUseCase.crear(orden)
-                .map(ordenWebMapper::toResponse)
-                .map(ResponseEntity::ok);
+        orden.setIdOrden(null);
+        Orden creada = ordenUseCase.crear(orden);
+        return ResponseEntity.ok(ordenWebMapper.toResponse(creada));
     }
 
     @PatchMapping("/{id}/estado")
-    public Mono<ResponseEntity<RespuestaMensaje>> cambiarEstado(@PathVariable Integer id,
-                                                                @Valid @RequestBody PeticionEstado request) {
-        return ordenUseCase.cambiarEstado(id, request.getEstado())
-                .thenReturn(ResponseEntity.ok(
-                        new RespuestaMensaje("Estado actualizado a '" + request.getEstado() + "'.")));
+    public ResponseEntity<RespuestaMensaje> cambiarEstado(@PathVariable Integer id,
+                                                          @Valid @RequestBody PeticionEstado request) {
+        ordenUseCase.cambiarEstado(id, request.getEstado());
+        return ResponseEntity.ok(new RespuestaMensaje("Estado actualizado a '" + request.getEstado() + "'."));
     }
 
     @PostMapping("/{id}/inyectores")
-    public Mono<ResponseEntity<RespuestaMensaje>> agregarInyector(@PathVariable Integer id,
-                                                                  @Valid @RequestBody DetalleInyectorRequest request) {
+    public ResponseEntity<RespuestaMensaje> agregarInyector(@PathVariable Integer id,
+                                                            @Valid @RequestBody DetalleInyectorRequest request) {
         DetalleInyector detalle = new DetalleInyector();
         detalle.setIdInyector(request.getIdInyector());
         detalle.setCantidad(request.getCantidad());
-        return detalleInyectorUseCase.agregar(id, detalle)
-                .thenReturn(ResponseEntity.ok(new RespuestaMensaje("Inyector agregado.")));
+        detalleInyectorUseCase.agregar(id, detalle);
+        return ResponseEntity.ok(new RespuestaMensaje("Inyector agregado."));
     }
 
     @PostMapping("/{id}/servicios")
-    public Mono<ResponseEntity<RespuestaMensaje>> agregarServicio(@PathVariable Integer id,
-                                                                  @Valid @RequestBody DetalleServicioRequest request) {
+    public ResponseEntity<RespuestaMensaje> agregarServicio(@PathVariable Integer id,
+                                                            @Valid @RequestBody DetalleServicioRequest request) {
         DetalleServicio detalle = new DetalleServicio();
         detalle.setIdServicio(request.getIdServicio());
         detalle.setCantidad(request.getCantidad());
         detalle.setPrecioUnitario(request.getPrecioUnitario());
-        return detalleServicioUseCase.agregar(id, detalle)
-                .thenReturn(ResponseEntity.ok(new RespuestaMensaje("Servicio agregado.")));
+        detalleServicioUseCase.agregar(id, detalle);
+        return ResponseEntity.ok(new RespuestaMensaje("Servicio agregado."));
     }
 
     @DeleteMapping("/inyectores/{idDetalle}")
-    public Mono<ResponseEntity<Void>> eliminarInyector(@PathVariable Integer idDetalle) {
-        return detalleInyectorUseCase.eliminar(idDetalle)
-                .thenReturn(ResponseEntity.noContent().build());
+    public ResponseEntity<Void> eliminarInyector(@PathVariable Integer idDetalle) {
+        detalleInyectorUseCase.eliminar(idDetalle);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/servicios/{idDetalle}")
-    public Mono<ResponseEntity<Void>> eliminarServicio(@PathVariable Integer idDetalle) {
-        return detalleServicioUseCase.eliminar(idDetalle)
-                .thenReturn(ResponseEntity.noContent().build());
+    public ResponseEntity<Void> eliminarServicio(@PathVariable Integer idDetalle) {
+        detalleServicioUseCase.eliminar(idDetalle);
+        return ResponseEntity.noContent().build();
     }
 }

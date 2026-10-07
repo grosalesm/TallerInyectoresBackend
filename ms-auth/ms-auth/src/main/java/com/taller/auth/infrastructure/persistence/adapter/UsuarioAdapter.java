@@ -5,90 +5,92 @@ import com.taller.auth.domain.bean.Rol;
 import com.taller.auth.domain.bean.Usuario;
 import com.taller.auth.infrastructure.mapper.RolMapper;
 import com.taller.auth.infrastructure.mapper.UsuarioMapper;
-import com.taller.auth.infrastructure.persistence.repository.RolR2dbcRepository;
-import com.taller.auth.infrastructure.persistence.repository.UsuarioR2dbcRepository;
+import com.taller.auth.infrastructure.persistence.entity.RolEntity;
+import com.taller.auth.infrastructure.persistence.entity.UsuarioEntity;
+import com.taller.auth.infrastructure.persistence.repository.RolRepository;
+import com.taller.auth.infrastructure.persistence.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 public class UsuarioAdapter implements UsuarioOutService {
 
-    private final UsuarioR2dbcRepository usuarioRepository;
-    private final RolR2dbcRepository rolRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final RolRepository rolRepository;
     private final UsuarioMapper usuarioMapper;
     private final RolMapper rolMapper;
 
     @Override
-    public Flux<Usuario> listar() {
-        return usuarioRepository.findAll()
-                .flatMap(this::conRol);
+    public List<Usuario> listar() {
+        return usuarioRepository.findAll().stream()
+                .map(this::conRol)
+                .toList();
     }
 
     @Override
-    public Flux<Rol> listarRoles() {
-        return rolRepository.findAll().map(rolMapper::toDomain);
+    public List<Rol> listarRoles() {
+        return rolRepository.findAll().stream()
+                .map(rolMapper::toDomain)
+                .toList();
     }
 
     @Override
-    public Mono<Usuario> obtenerPorId(Integer id) {
-        return usuarioRepository.findById(id).flatMap(this::conRol);
+    public Optional<Usuario> obtenerPorId(Integer id) {
+        return usuarioRepository.findById(id).map(this::conRol);
     }
 
     @Override
-    public Mono<Usuario> obtenerPorNombreUsuario(String nombreUsuario) {
-        return usuarioRepository.findByNombreUsuario(nombreUsuario).flatMap(this::conRol);
+    public Optional<Usuario> obtenerPorNombreUsuario(String nombreUsuario) {
+        return usuarioRepository.findByNombreUsuario(nombreUsuario).map(this::conRol);
     }
 
     @Override
-    public Mono<Usuario> insertar(Usuario usuario) {
+    public Usuario insertar(Usuario usuario) {
         usuario.setIdUsuario(null);
-        return usuarioRepository.save(usuarioMapper.toEntity(usuario))
-                .flatMap(this::conRol);
+        UsuarioEntity saved = usuarioRepository.save(usuarioMapper.toEntity(usuario));
+        return conRol(saved);
     }
 
     @Override
-    public Mono<Usuario> actualizar(Usuario usuario) {
-        return usuarioRepository.findById(usuario.getIdUsuario())
-                .flatMap(entity -> {
-                    entity.setNombre(usuario.getNombre());
-                    entity.setNombreUsuario(usuario.getNombreUsuario());
-                    entity.setIdRol(usuario.getIdRol());
-                    if (usuario.getActivo() != null) {
-                        entity.setActivo(usuario.getActivo());
-                    }
-                    return usuarioRepository.save(entity);
-                })
-                .flatMap(this::conRol);
+    public Usuario actualizar(Usuario usuario) {
+        UsuarioEntity entity = usuarioRepository.findById(usuario.getIdUsuario())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Usuario no encontrado con id: " + usuario.getIdUsuario()));
+        entity.setNombre(usuario.getNombre());
+        entity.setNombreUsuario(usuario.getNombreUsuario());
+        entity.setIdRol(usuario.getIdRol());
+        if (usuario.getActivo() != null) {
+            entity.setActivo(usuario.getActivo());
+        }
+        UsuarioEntity saved = usuarioRepository.save(entity);
+        return conRol(saved);
     }
 
     @Override
-    public Mono<Void> cambiarClave(Integer idUsuario, String claveHasheada) {
-        return usuarioRepository.findById(idUsuario)
-                .flatMap(entity -> {
-                    entity.setClave(claveHasheada);
-                    return usuarioRepository.save(entity);
-                })
-                .then();
+    public void cambiarClave(Integer idUsuario, String claveHasheada) {
+        UsuarioEntity entity = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Usuario no encontrado con id: " + idUsuario));
+        entity.setClave(claveHasheada);
+        usuarioRepository.save(entity);
     }
 
     @Override
-    public Mono<Void> eliminar(Integer id) {
-        return usuarioRepository.deleteById(id);
+    public void eliminar(Integer id) {
+        usuarioRepository.deleteById(id);
     }
 
-    private Mono<Usuario> conRol(com.taller.auth.infrastructure.persistence.entity.UsuarioEntity entity) {
+    private Usuario conRol(UsuarioEntity entity) {
         Usuario usuario = usuarioMapper.toDomain(entity);
         if (entity.getIdRol() == null) {
-            return Mono.just(usuario);
+            return usuario;
         }
-        return rolRepository.findById(entity.getIdRol())
-                .map(rol -> {
-                    usuario.setNombreRol(rol.getNombre());
-                    return usuario;
-                })
-                .defaultIfEmpty(usuario);
+        rolRepository.findById(entity.getIdRol()).ifPresent(rol ->
+                usuario.setNombreRol(rol.getNombre()));
+        return usuario;
     }
 }

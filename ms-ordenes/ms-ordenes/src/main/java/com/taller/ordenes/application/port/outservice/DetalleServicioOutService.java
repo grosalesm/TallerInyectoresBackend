@@ -1,12 +1,13 @@
 package com.taller.ordenes.application.port.outservice;
 
 import com.taller.ordenes.domain.bean.DetalleServicio;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface DetalleServicioOutService {
-    Flux<DetalleServicio> listarPorOrden(Integer idOrden);
-    Mono<DetalleServicio> guardar(DetalleServicio detalle);
-    Mono<Void> eliminar(Integer idDetalle);
-    Mono<DetalleServicio> obtenerPorId(Integer idDetalle);
+    List<DetalleServicio> listarPorOrden(Integer idOrden);
+    DetalleServicio guardar(DetalleServicio detalle);
+    void eliminar(Integer idDetalle);
+    Optional<DetalleServicio> obtenerPorId(Integer idDetalle);
 }

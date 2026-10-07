@@ -1,31 +1,36 @@
 package com.taller.ordenes.infrastructure.persistence.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table("detalle_servicios")
+@Entity
+@Table(name = "detalle_servicios")
 public class DetalleServicioEntity {
 
     @Id
-    @Column("id_detalle")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_detalle")
     private Integer idDetalle;
 
-    @Column("id_orden")
+    @Column(name = "id_orden")
     private Integer idOrden;
 
-    @Column("id_servicio")
+    @Column(name = "id_servicio")
     private Integer idServicio;
 
-    @Column("cantidad")
+    @Column(name = "cantidad")
     private Integer cantidad;
 
-    @Column("precio_unitario")
+    @Column(name = "precio_unitario")
     private Double precioUnitario;
 }

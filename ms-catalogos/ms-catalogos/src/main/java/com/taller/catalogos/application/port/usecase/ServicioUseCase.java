@@ -1,13 +1,14 @@
 package com.taller.catalogos.application.port.usecase;
 
 import com.taller.catalogos.domain.bean.Servicio;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface ServicioUseCase {
-    Flux<Servicio> listar();
-    Flux<Servicio> listarActivos();
-    Mono<Servicio> obtenerPorId(Integer id);
-    Mono<Servicio> guardar(Servicio servicio);
-    Mono<Void> eliminar(Integer id);
+    List<Servicio> listar();
+    List<Servicio> listarActivos();
+    Optional<Servicio> obtenerPorId(Integer id);
+    Servicio guardar(Servicio servicio);
+    void eliminar(Integer id);
 }

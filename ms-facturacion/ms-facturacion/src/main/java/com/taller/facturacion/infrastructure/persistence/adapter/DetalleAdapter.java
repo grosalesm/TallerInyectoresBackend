@@ -1,11 +1,10 @@
 package com.taller.facturacion.infrastructure.persistence.adapter;
 
 import com.taller.facturacion.application.port.outservice.DetalleOutService;
+import com.taller.facturacion.infrastructure.client.OrdenFeignClient;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
@@ -14,25 +13,25 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class DetalleAdapter implements DetalleOutService {
 
-    private final WebClient.Builder webClientBuilder;
+    private final OrdenFeignClient ordenFeignClient;
 
     @Override
-    public Mono<List<Map<String, Object>>> obtenerInyectoresPorOrden(Integer idOrden) {
-        return webClientBuilder.build()
-                .get()
-                .uri("lb://ms-ordenes/api/orden/{id}/inyectores", idOrden)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<List<Map<String, Object>>>() {})
-                .onErrorReturn(List.of());
+    @CircuitBreaker(name = "ms-ordenes", fallbackMethod = "obtenerInyectoresFallback")
+    public List<Map<String, Object>> obtenerInyectoresPorOrden(Integer idOrden) {
+        return ordenFeignClient.obtenerInyectores(idOrden);
+    }
+
+    public List<Map<String, Object>> obtenerInyectoresFallback(Integer idOrden, Throwable t) {
+        return List.of();
     }
 
     @Override
-    public Mono<List<Map<String, Object>>> obtenerServiciosPorOrden(Integer idOrden) {
-        return webClientBuilder.build()
-                .get()
-                .uri("lb://ms-ordenes/api/orden/{id}/servicios", idOrden)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<List<Map<String, Object>>>() {})
-                .onErrorReturn(List.of());
+    @CircuitBreaker(name = "ms-ordenes", fallbackMethod = "obtenerServiciosFallback")
+    public List<Map<String, Object>> obtenerServiciosPorOrden(Integer idOrden) {
+        return ordenFeignClient.obtenerServicios(idOrden);
+    }
+
+    public List<Map<String, Object>> obtenerServiciosFallback(Integer idOrden, Throwable t) {
+        return List.of();
     }
 }

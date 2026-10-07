@@ -1,13 +1,14 @@
 package com.taller.facturacion.application.port.usecase;
 
 import com.taller.facturacion.domain.bean.Recibo;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface ReciboUseCase {
-    Flux<Recibo> listar();
-    Flux<Recibo> listarPorMes(int mes, int anio);
-    Mono<Recibo> obtenerPorId(Integer id);
-    Mono<Recibo> obtenerPorOrden(Integer idOrden);
-    Mono<Recibo> registrar(Integer idOrden, String metodoPago, String numOperacion);
+    List<Recibo> listar();
+    List<Recibo> listarPorMes(int mes, int anio);
+    Optional<Recibo> obtenerPorId(Integer id);
+    Optional<Recibo> obtenerPorOrden(Integer idOrden);
+    Recibo registrar(Integer idOrden, String metodoPago, String numOperacion);
 }

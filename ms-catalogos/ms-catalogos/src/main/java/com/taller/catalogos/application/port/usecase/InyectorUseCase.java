@@ -1,13 +1,14 @@
 package com.taller.catalogos.application.port.usecase;
 
 import com.taller.catalogos.domain.bean.Inyector;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface InyectorUseCase {
-    Flux<Inyector> listar();
-    Flux<Inyector> listarActivos();
-    Mono<Inyector> obtenerPorId(Integer id);
-    Mono<Inyector> guardar(Inyector inyector);
-    Mono<Void> eliminar(Integer id);
+    List<Inyector> listar();
+    List<Inyector> listarActivos();
+    Optional<Inyector> obtenerPorId(Integer id);
+    Inyector guardar(Inyector inyector);
+    void eliminar(Integer id);
 }

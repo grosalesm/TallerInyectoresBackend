@@ -3,59 +3,63 @@ package com.taller.clientes.infrastructure.persistence.adapter;
 import com.taller.clientes.application.port.outservice.ClienteOutService;
 import com.taller.clientes.domain.bean.Cliente;
 import com.taller.clientes.infrastructure.mapper.ClienteMapper;
-import com.taller.clientes.infrastructure.persistence.repository.ClienteR2dbcRepository;
+import com.taller.clientes.infrastructure.persistence.entity.ClienteEntity;
+import com.taller.clientes.infrastructure.persistence.repository.ClienteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 public class ClienteAdapter implements ClienteOutService {
 
-    private final ClienteR2dbcRepository repository;
+    private final ClienteRepository repository;
     private final ClienteMapper mapper;
 
     @Override
-    public Flux<Cliente> listar() {
-        return repository.findAll().map(mapper::toDomain);
+    public List<Cliente> listar() {
+        return repository.findAll().stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
-    public Mono<Cliente> obtenerPorId(Integer id) {
+    public Optional<Cliente> obtenerPorId(Integer id) {
         return repository.findById(id).map(mapper::toDomain);
     }
 
     @Override
-    public Mono<Cliente> obtenerPorDni(String dni) {
+    public Optional<Cliente> obtenerPorDni(String dni) {
         return repository.findByDni(dni).map(mapper::toDomain);
     }
 
     @Override
-    public Mono<Cliente> insertar(Cliente cliente) {
+    public Cliente insertar(Cliente cliente) {
         cliente.setIdCliente(null);
         cliente.setFechaRegistro(LocalDateTime.now());
-        return repository.save(mapper.toEntity(cliente)).map(mapper::toDomain);
+        ClienteEntity saved = repository.save(mapper.toEntity(cliente));
+        return mapper.toDomain(saved);
     }
 
     @Override
-    public Mono<Cliente> actualizar(Cliente cliente) {
-        return repository.findById(cliente.getIdCliente())
-                .flatMap(entity -> {
-                    entity.setNombres(cliente.getNombres());
-                    entity.setApellidos(cliente.getApellidos());
-                    entity.setDni(cliente.getDni());
-                    entity.setTelefono(cliente.getTelefono());
-                    entity.setEmail(cliente.getEmail());
-                    return repository.save(entity);
-                })
-                .map(mapper::toDomain);
+    public Cliente actualizar(Cliente cliente) {
+        ClienteEntity entity = repository.findById(cliente.getIdCliente())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Cliente no encontrado con id: " + cliente.getIdCliente()));
+        entity.setNombres(cliente.getNombres());
+        entity.setApellidos(cliente.getApellidos());
+        entity.setDni(cliente.getDni());
+        entity.setTelefono(cliente.getTelefono());
+        entity.setEmail(cliente.getEmail());
+        ClienteEntity saved = repository.save(entity);
+        return mapper.toDomain(saved);
     }
 
     @Override
-    public Mono<Void> eliminar(Integer id) {
-        return repository.deleteById(id);
+    public void eliminar(Integer id) {
+        repository.deleteById(id);
     }
 }

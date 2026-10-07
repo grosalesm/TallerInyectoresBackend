@@ -8,8 +8,10 @@ import com.taller.auth.infrastructure.dto.RespuestaLogin;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -20,16 +22,14 @@ public class AuthController {
     private final JwtOutService jwtOutService;
 
     @PostMapping("/login")
-    public Mono<ResponseEntity<RespuestaLogin>> login(@Valid @RequestBody PeticionLogin request) {
-        return authUseCase.login(request.getNombreUsuario(), request.getClave())
-                .map(usuario -> {
-                    String token = jwtOutService.generarToken(usuario);
-                    return ResponseEntity.ok(new RespuestaLogin(
-                            token,
-                            usuario.getNombre(),
-                            usuario.getNombreRol(),
-                            usuario.getIdUsuario()
-                    ));
-                });
+    public ResponseEntity<RespuestaLogin> login(@Valid @RequestBody PeticionLogin request) {
+        Usuario usuario = authUseCase.login(request.getNombreUsuario(), request.getClave());
+        String token = jwtOutService.generarToken(usuario);
+        return ResponseEntity.ok(new RespuestaLogin(
+                token,
+                usuario.getNombre(),
+                usuario.getNombreRol(),
+                usuario.getIdUsuario()
+        ));
     }
 }

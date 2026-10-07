@@ -27,10 +27,8 @@ public class ReciboEventConsumer {
             Integer idOrden = ((Number) idOrdenObj).intValue();
             log.info("Evento pago.registrado recibido para orden {}", idOrden);
 
-            ordenUseCase.cambiarEstadoPorEvento(idOrden, EstadoOrden.PAGADO.getDescripcion())
-                    .doOnSuccess(v -> log.info("Orden {} marcada como Pagado", idOrden))
-                    .doOnError(e -> log.error("Error al cambiar estado de orden {}: {}", idOrden, e.getMessage()))
-                    .subscribe();
+            ordenUseCase.cambiarEstadoPorEvento(idOrden, EstadoOrden.PAGADO.getDescripcion());
+            log.info("Orden {} marcada como Pagado", idOrden);
         } catch (Exception e) {
             log.error("Error procesando evento pago.registrado: {}", e.getMessage(), e);
         }

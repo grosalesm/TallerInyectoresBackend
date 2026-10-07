@@ -1,39 +1,44 @@
 package com.taller.clientes.infrastructure.persistence.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table("clientes")
+@Entity
+@Table(name = "clientes")
 public class ClienteEntity {
 
     @Id
-    @Column("id_cliente")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_cliente")
     private Integer idCliente;
 
-    @Column("nombres")
+    @Column(name = "nombres", nullable = false)
     private String nombres;
 
-    @Column("apellidos")
+    @Column(name = "apellidos", nullable = false)
     private String apellidos;
 
-    @Column("dni")
+    @Column(name = "dni", nullable = false, unique = true, length = 8)
     private String dni;
 
-    @Column("telefono")
+    @Column(name = "telefono")
     private String telefono;
 
-    @Column("email")
+    @Column(name = "email")
     private String email;
 
-    @Column("fecha_registro")
+    @Column(name = "fecha_registro")
     private LocalDateTime fechaRegistro;
 }

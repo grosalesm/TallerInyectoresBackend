@@ -2,14 +2,15 @@ package com.taller.auth.application.port.usecase;
 
 import com.taller.auth.domain.bean.Rol;
 import com.taller.auth.domain.bean.Usuario;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface UsuarioUseCase {
-    Flux<Usuario> listar();
-    Flux<Rol> listarRoles();
-    Mono<Usuario> obtenerPorId(Integer id);
-    Mono<Usuario> guardar(Usuario usuario);
-    Mono<Void> cambiarClave(Integer idUsuario, String nuevaClave);
-    Mono<Void> eliminar(Integer id);
+    List<Usuario> listar();
+    List<Rol> listarRoles();
+    Optional<Usuario> obtenerPorId(Integer id);
+    Usuario guardar(Usuario usuario);
+    void cambiarClave(Integer idUsuario, String nuevaClave);
+    void eliminar(Integer id);
 }

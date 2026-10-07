@@ -1,38 +1,39 @@
 package com.taller.facturacion.infrastructure.persistence.adapter;
 
 import com.taller.facturacion.application.port.outservice.ClienteOutService;
+import com.taller.facturacion.infrastructure.client.ClienteFeignClient;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 @Component
 @RequiredArgsConstructor
 public class ClienteAdapter implements ClienteOutService {
 
-    private final WebClient.Builder webClientBuilder;
+    private final ClienteFeignClient clienteFeignClient;
 
     @Override
-    public Mono<String> obtenerNombreCliente(Integer idCliente) {
-        return webClientBuilder.build()
-                .get()
-                .uri("lb://ms-clientes/api/cliente/{id}", idCliente)
-                .retrieve()
-                .bodyToMono(ClienteDto.class)
-                .map(c -> (c.nombres() + " " + c.apellidos()).trim())
-                .onErrorReturn("");
+    @CircuitBreaker(name = "ms-clientes", fallbackMethod = "obtenerNombreClienteFallback")
+    public String obtenerNombreCliente(Integer idCliente) {
+        ClienteFeignClient.ClienteDto dto = clienteFeignClient.obtenerCliente(idCliente);
+        if (dto == null) return "";
+        String nombres = dto.nombres() != null ? dto.nombres() : "";
+        String apellidos = dto.apellidos() != null ? dto.apellidos() : "";
+        return (nombres + " " + apellidos).trim();
+    }
+
+    public String obtenerNombreClienteFallback(Integer idCliente, Throwable t) {
+        return "";
     }
 
     @Override
-    public Mono<String> obtenerDniCliente(Integer idCliente) {
-        return webClientBuilder.build()
-                .get()
-                .uri("lb://ms-clientes/api/cliente/{id}", idCliente)
-                .retrieve()
-                .bodyToMono(ClienteDto.class)
-                .map(c -> c.dni() != null ? c.dni() : "")
-                .onErrorReturn("");
+    @CircuitBreaker(name = "ms-clientes", fallbackMethod = "obtenerDniClienteFallback")
+    public String obtenerDniCliente(Integer idCliente) {
+        ClienteFeignClient.ClienteDto dto = clienteFeignClient.obtenerCliente(idCliente);
+        return dto != null && dto.dni() != null ? dto.dni() : "";
     }
 
-    public record ClienteDto(Integer idCliente, String nombres, String apellidos, String dni) {}
+    public String obtenerDniClienteFallback(Integer idCliente, Throwable t) {
+        return "";
+    }
 }

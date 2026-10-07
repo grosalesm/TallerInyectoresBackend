@@ -8,8 +8,10 @@ import com.taller.reportes.domain.bean.ReporteMensual;
 import com.taller.reportes.infrastructure.dto.DashboardResponse;
 import com.taller.reportes.infrastructure.dto.ReporteResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.stream.Collectors;
 
@@ -21,13 +23,13 @@ public class ReporteController {
     private final ReporteUseCase reporteUseCase;
 
     @GetMapping("/mensual/{mes}/{anio}")
-    public Mono<ReporteResponse> reporteMensual(@PathVariable int mes, @PathVariable int anio) {
-        return reporteUseCase.reportePorMes(mes, anio).map(this::toResponse);
+    public ReporteResponse reporteMensual(@PathVariable int mes, @PathVariable int anio) {
+        return toResponse(reporteUseCase.reportePorMes(mes, anio));
     }
 
     @GetMapping("/dashboard")
-    public Mono<DashboardResponse> dashboard() {
-        return reporteUseCase.obtenerDashboard().map(this::toDashboardResponse);
+    public DashboardResponse dashboard() {
+        return toDashboardResponse(reporteUseCase.obtenerDashboard());
     }
 
     private ReporteResponse toResponse(ReporteMensual r) {

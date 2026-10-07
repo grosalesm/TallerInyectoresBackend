@@ -12,7 +12,6 @@ public class InyectorRequest {
 
     @NotBlank(message = "El modelo es obligatorio")
     private String modelo;
-
     private String marca;
     private String descripcion;
     private Boolean activo;

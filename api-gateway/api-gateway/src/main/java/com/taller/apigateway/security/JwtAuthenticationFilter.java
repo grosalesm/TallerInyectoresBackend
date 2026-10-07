@@ -60,7 +60,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
             log.info("Token válido para usuario: {}", claims.get("nombre"));
 
-            // ✅ No mutamos la request. Dejamos pasar la original.
             return chain.filter(exchange);
         } catch (Exception e) {
             log.error("Error validando JWT: {}", e.getMessage());

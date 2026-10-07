@@ -11,7 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Flux;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/catalogo")
@@ -24,17 +25,17 @@ public class CatalogoController {
     private final CatalogoWebMapper mapper;
 
     @GetMapping("/inyectores")
-    public Flux<InyectorResponse> inyectores() {
-        return inyectorUseCase.listarActivos().map(mapper::toResponse);
+    public List<InyectorResponse> inyectores() {
+        return inyectorUseCase.listarActivos().stream().map(mapper::toResponse).toList();
     }
 
     @GetMapping("/servicios")
-    public Flux<ServicioResponse> servicios() {
-        return servicioUseCase.listarActivos().map(mapper::toResponse);
+    public List<ServicioResponse> servicios() {
+        return servicioUseCase.listarActivos().stream().map(mapper::toResponse).toList();
     }
 
     @GetMapping("/mecanicos")
-    public Flux<MecanicoResponse> mecanicos() {
-        return mecanicoUseCase.listarActivos().map(mapper::toResponse);
+    public List<MecanicoResponse> mecanicos() {
+        return mecanicoUseCase.listarActivos().stream().map(mapper::toResponse).toList();
     }
 }

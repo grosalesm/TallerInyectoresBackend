@@ -1,8 +1,9 @@
 package com.taller.facturacion.application.port.outservice;
 
 import com.taller.facturacion.domain.bean.OrdenInfo;
-import reactor.core.publisher.Mono;
+
+import java.util.Optional;
 
 public interface OrdenOutService {
-    Mono<OrdenInfo> obtenerOrden(Integer idOrden);
+    Optional<OrdenInfo> obtenerOrden(Integer idOrden);
 }

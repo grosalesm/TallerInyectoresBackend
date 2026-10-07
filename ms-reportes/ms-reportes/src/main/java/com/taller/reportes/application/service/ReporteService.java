@@ -10,7 +10,6 @@ import com.taller.reportes.domain.bean.OrdenResumen;
 import com.taller.reportes.domain.bean.ReporteMensual;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 import java.time.format.TextStyle;
@@ -30,80 +29,70 @@ public class ReporteService implements ReporteUseCase {
     private final ClienteOutService clienteOutService;
 
     @Override
-    public Mono<ReporteMensual> reportePorMes(int mes, int anio) {
-        return reciboOutService.listarPorMes(mes, anio)
-                .collectList()
-                .map(recibos -> {
-                    ReporteMensual reporte = new ReporteMensual();
-                    reporte.setMes(mes);
-                    reporte.setAnio(anio);
-                    reporte.setTipoFiltro("mes");
-                    reporte.setNombreMes(
-                            LocalDate.of(anio, mes, 1)
-                                    .getMonth()
-                                    .getDisplayName(TextStyle.FULL, new Locale("es", "ES"))
-                                    + " " + anio
-                    );
-                    reporte.setTitulo("Reporte de " + reporte.getNombreMes());
-                    reporte.setTotalOrdenes(recibos.size());
-                    reporte.setOrdenesAtendidas(recibos.size());
-                    reporte.setIngresoTotal(sumarMontos(recibos));
-                    reporte.setRecibos(recibos);
-                    reporte.setServiciosMasUsados(calcularServiciosMasUsados(recibos));
-                    reporte.setInyectoresMasAtendidos(calcularInyectoresMasAtendidos(recibos));
-                    return reporte;
-                });
+    public ReporteMensual reportePorMes(int mes, int anio) {
+        List<Map<String, Object>> recibos = reciboOutService.listarPorMes(mes, anio);
+
+        ReporteMensual reporte = new ReporteMensual();
+        reporte.setMes(mes);
+        reporte.setAnio(anio);
+        reporte.setTipoFiltro("mes");
+        reporte.setNombreMes(
+                LocalDate.of(anio, mes, 1)
+                        .getMonth()
+                        .getDisplayName(TextStyle.FULL, new Locale("es", "ES"))
+                        + " " + anio
+        );
+        reporte.setTitulo("Reporte de " + reporte.getNombreMes());
+        reporte.setTotalOrdenes(recibos.size());
+        reporte.setOrdenesAtendidas(recibos.size());
+        reporte.setIngresoTotal(sumarMontos(recibos));
+        reporte.setRecibos(recibos);
+        reporte.setServiciosMasUsados(calcularServiciosMasUsados(recibos));
+        reporte.setInyectoresMasAtendidos(calcularInyectoresMasAtendidos(recibos));
+        return reporte;
     }
 
     @Override
-    public Mono<Dashboard> obtenerDashboard() {
-        Mono<List<OrdenResumen>> ordenesMono = ordenOutService.listarTodas().collectList();
-        Mono<List<Map<String, Object>>> clientesMono = clienteOutService.listarTodos().collectList();
+    public Dashboard obtenerDashboard() {
+        List<OrdenResumen> ordenes = ordenOutService.listarTodas();
+        List<Map<String, Object>> clientes = clienteOutService.listarTodos();
 
         LocalDate hoy = LocalDate.now();
         LocalDate inicioMes = hoy.withDayOfMonth(1);
         LocalDate finMes = hoy.withDayOfMonth(hoy.lengthOfMonth());
 
-        Mono<List<Map<String, Object>>> recibosMesMono = reciboOutService
-                .listarPorMes(hoy.getMonthValue(), hoy.getYear())
-                .collectList();
+        List<Map<String, Object>> recibosMes = reciboOutService
+                .listarPorMes(hoy.getMonthValue(), hoy.getYear());
 
-        return Mono.zip(ordenesMono, clientesMono, recibosMesMono)
-                .map(tuple -> {
-                    List<OrdenResumen> ordenes = tuple.getT1();
-                    List<Map<String, Object>> clientes = tuple.getT2();
-                    List<Map<String, Object>> recibosMes = tuple.getT3();
-
-                    Dashboard dash = new Dashboard();
-                    dash.setOrdenesTotalHoy((int) ordenes.stream()
-                            .filter(o -> o.getFechaIngreso() != null
-                                    && o.getFechaIngreso().toLocalDate().equals(hoy))
-                            .count());
-                    dash.setOrdenesPendientes((int) ordenes.stream()
-                            .filter(o -> "Pendiente".equalsIgnoreCase(o.getEstado()))
-                            .count());
-                    dash.setOrdenesEnProceso((int) ordenes.stream()
-                            .filter(o -> "En Proceso".equalsIgnoreCase(o.getEstado()))
-                            .count());
-                    dash.setOrdenesTerminadas((int) ordenes.stream()
-                            .filter(o -> "Terminado".equalsIgnoreCase(o.getEstado()))
-                            .count());
-                    dash.setOrdenesPagadas((int) ordenes.stream()
-                            .filter(o -> "Pagado".equalsIgnoreCase(o.getEstado())
-                                    && o.getFechaIngreso() != null
-                                    && !o.getFechaIngreso().toLocalDate().isBefore(inicioMes)
-                                    && !o.getFechaIngreso().toLocalDate().isAfter(finMes))
-                            .count());
-                    dash.setIngresosMes(sumarMontos(recibosMes));
-                    dash.setTotalClientes(clientes.size());
-                    dash.setUltimasOrdenes(ordenes.stream()
-                            .sorted(Comparator.comparing(
-                                    OrdenResumen::getFechaIngreso,
-                                    Comparator.nullsLast(Comparator.reverseOrder())))
-                            .limit(5)
-                            .collect(Collectors.toList()));
-                    return dash;
-                });
+        Dashboard dash = new Dashboard();
+        dash.setOrdenesTotalHoy((int) ordenes.stream()
+                .filter(o -> o.getFechaIngreso() != null
+                        && o.getFechaIngreso().toLocalDate().equals(hoy))
+                .count());
+        dash.setOrdenesPendientes((int) ordenes.stream()
+                .filter(o -> "Pendiente".equalsIgnoreCase(o.getEstado()))
+                .count());
+        dash.setOrdenesEnProceso((int) ordenes.stream()
+                .filter(o -> "En Proceso".equalsIgnoreCase(o.getEstado()))
+                .count());
+        dash.setOrdenesTerminadas((int) ordenes.stream()
+                .filter(o -> "Terminado".equalsIgnoreCase(o.getEstado()))
+                .count());
+        dash.setOrdenesPagadas((int) ordenes.stream()
+                .filter(o -> "Pagado".equalsIgnoreCase(o.getEstado())
+                        && o.getFechaIngreso() != null
+                        && !o.getFechaIngreso().toLocalDate().isBefore(inicioMes)
+                        && !o.getFechaIngreso().toLocalDate().isAfter(finMes))
+                .count());
+        dash.setIngresosMes(sumarMontos(recibosMes));
+        dash.setTotalClientes(clientes.size());
+        dash.setUltimasOrdenes(ordenes.stream()
+                .sorted(Comparator.comparing(
+                        OrdenResumen::getFechaIngreso,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(5)
+                .collect(Collectors.toList()));
+        return dash;
     }
 
     private Double sumarMontos(List<Map<String, Object>> recibos) {

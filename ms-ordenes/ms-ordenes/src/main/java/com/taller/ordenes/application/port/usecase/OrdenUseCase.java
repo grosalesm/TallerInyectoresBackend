@@ -1,14 +1,15 @@
 package com.taller.ordenes.application.port.usecase;
 
 import com.taller.ordenes.domain.bean.Orden;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface OrdenUseCase {
-    Flux<Orden> listar();
-    Flux<Orden> listarPorEstado(String estado);
-    Mono<Orden> obtenerPorId(Integer id);
-    Mono<Orden> crear(Orden orden);
-    Mono<Void> cambiarEstado(Integer idOrden, String estado);
-    Mono<Void> cambiarEstadoPorEvento(Integer idOrden, String estado);
+    List<Orden> listar();
+    List<Orden> listarPorEstado(String estado);
+    Optional<Orden> obtenerPorId(Integer id);
+    Orden crear(Orden orden);
+    void cambiarEstado(Integer idOrden, String estado);
+    void cambiarEstadoPorEvento(Integer idOrden, String estado);
 }

@@ -8,9 +8,16 @@ import com.taller.catalogos.infrastructure.mapper.CatalogoWebMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/inyector")
@@ -21,40 +28,38 @@ public class InyectorController {
     private final CatalogoWebMapper mapper;
 
     @GetMapping
-    public Flux<InyectorResponse> listar() {
-        return inyectorUseCase.listar().map(mapper::toResponse);
+    public List<InyectorResponse> listar() {
+        return inyectorUseCase.listar().stream().map(mapper::toResponse).toList();
     }
 
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<InyectorResponse>> obtenerPorId(@PathVariable Integer id) {
+    public ResponseEntity<InyectorResponse> obtenerPorId(@PathVariable Integer id) {
         return inyectorUseCase.obtenerPorId(id)
                 .map(mapper::toResponse)
                 .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public Mono<ResponseEntity<InyectorResponse>> crear(@Valid @RequestBody InyectorRequest request) {
+    public ResponseEntity<InyectorResponse> crear(@Valid @RequestBody InyectorRequest request) {
         Inyector inyector = mapper.toDomain(request);
-        inyector.setIdInyector(0);
-        return inyectorUseCase.guardar(inyector)
-                .map(mapper::toResponse)
-                .map(ResponseEntity::ok);
+        inyector.setIdInyector(null);
+        Inyector creado = inyectorUseCase.guardar(inyector);
+        return ResponseEntity.ok(mapper.toResponse(creado));
     }
 
     @PutMapping("/{id}")
-    public Mono<ResponseEntity<InyectorResponse>> actualizar(@PathVariable Integer id,
-                                                             @Valid @RequestBody InyectorRequest request) {
+    public ResponseEntity<InyectorResponse> actualizar(@PathVariable Integer id,
+                                                       @Valid @RequestBody InyectorRequest request) {
         Inyector inyector = mapper.toDomain(request);
         inyector.setIdInyector(id);
-        return inyectorUseCase.guardar(inyector)
-                .map(mapper::toResponse)
-                .map(ResponseEntity::ok);
+        Inyector actualizado = inyectorUseCase.guardar(inyector);
+        return ResponseEntity.ok(mapper.toResponse(actualizado));
     }
 
     @DeleteMapping("/{id}")
-    public Mono<ResponseEntity<Void>> eliminar(@PathVariable Integer id) {
-        return inyectorUseCase.eliminar(id)
-                .thenReturn(ResponseEntity.noContent().build());
+    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
+        inyectorUseCase.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }

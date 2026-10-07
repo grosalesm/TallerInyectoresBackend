@@ -3,55 +3,58 @@ package com.taller.catalogos.infrastructure.persistence.adapter;
 import com.taller.catalogos.application.port.outservice.InyectorOutService;
 import com.taller.catalogos.domain.bean.Inyector;
 import com.taller.catalogos.infrastructure.mapper.InyectorMapper;
-import com.taller.catalogos.infrastructure.persistence.repository.InyectorR2dbcRepository;
+import com.taller.catalogos.infrastructure.persistence.entity.InyectorEntity;
+import com.taller.catalogos.infrastructure.persistence.repository.InyectorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 public class InyectorAdapter implements InyectorOutService {
 
-    private final InyectorR2dbcRepository repository;
+    private final InyectorRepository repository;
     private final InyectorMapper mapper;
 
     @Override
-    public Flux<Inyector> listar() {
-        return repository.findAll().map(mapper::toDomain);
+    public List<Inyector> listar() {
+        return repository.findAll().stream().map(mapper::toDomain).toList();
     }
 
     @Override
-    public Flux<Inyector> listarActivos() {
-        return repository.findActivos().map(mapper::toDomain);
+    public List<Inyector> listarActivos() {
+        return repository.findByActivoTrue().stream().map(mapper::toDomain).toList();
     }
 
     @Override
-    public Mono<Inyector> obtenerPorId(Integer id) {
+    public Optional<Inyector> obtenerPorId(Integer id) {
         return repository.findById(id).map(mapper::toDomain);
     }
 
     @Override
-    public Mono<Inyector> insertar(Inyector inyector) {
+    public Inyector insertar(Inyector inyector) {
         inyector.setIdInyector(null);
-        return repository.save(mapper.toEntity(inyector)).map(mapper::toDomain);
+        InyectorEntity saved = repository.save(mapper.toEntity(inyector));
+        return mapper.toDomain(saved);
     }
 
     @Override
-    public Mono<Inyector> actualizar(Inyector inyector) {
-        return repository.findById(inyector.getIdInyector())
-                .flatMap(entity -> {
-                    entity.setModelo(inyector.getModelo());
-                    entity.setMarca(inyector.getMarca());
-                    entity.setDescripcion(inyector.getDescripcion());
-                    entity.setActivo(inyector.getActivo());
-                    return repository.save(entity);
-                })
-                .map(mapper::toDomain);
+    public Inyector actualizar(Inyector inyector) {
+        InyectorEntity entity = repository.findById(inyector.getIdInyector())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Inyector no encontrado con id: " + inyector.getIdInyector()));
+        entity.setModelo(inyector.getModelo());
+        entity.setMarca(inyector.getMarca());
+        entity.setDescripcion(inyector.getDescripcion());
+        entity.setActivo(inyector.getActivo());
+        InyectorEntity saved = repository.save(entity);
+        return mapper.toDomain(saved);
     }
 
     @Override
-    public Mono<Void> eliminar(Integer id) {
-        return repository.deleteById(id);
+    public void eliminar(Integer id) {
+        repository.deleteById(id);
     }
 }

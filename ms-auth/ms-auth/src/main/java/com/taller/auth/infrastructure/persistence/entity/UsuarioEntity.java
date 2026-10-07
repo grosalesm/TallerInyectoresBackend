@@ -1,34 +1,39 @@
 package com.taller.auth.infrastructure.persistence.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table("usuarios")
+@Entity
+@Table(name = "usuarios")
 public class UsuarioEntity {
 
     @Id
-    @Column("id_usuario")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_usuario")
     private Integer idUsuario;
 
-    @Column("nombre")
+    @Column(name = "nombre", nullable = false)
     private String nombre;
 
-    @Column("nombre_usuario")
+    @Column(name = "nombre_usuario", nullable = false, unique = true)
     private String nombreUsuario;
 
-    @Column("clave")
+    @Column(name = "clave", nullable = false)
     private String clave;
 
-    @Column("id_rol")
+    @Column(name = "id_rol", nullable = false)
     private Integer idRol;
 
-    @Column("activo")
+    @Column(name = "activo")
     private Boolean activo;
 }

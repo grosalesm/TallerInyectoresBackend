@@ -8,9 +8,16 @@ import com.taller.clientes.infrastructure.mapper.ClienteWebMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/cliente")
@@ -21,40 +28,40 @@ public class ClienteController {
     private final ClienteWebMapper clienteWebMapper;
 
     @GetMapping
-    public Flux<ClienteResponse> listar() {
-        return clienteUseCase.listar().map(clienteWebMapper::toResponse);
+    public List<ClienteResponse> listar() {
+        return clienteUseCase.listar().stream()
+                .map(clienteWebMapper::toResponse)
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<ClienteResponse>> obtenerPorId(@PathVariable Integer id) {
+    public ResponseEntity<ClienteResponse> obtenerPorId(@PathVariable Integer id) {
         return clienteUseCase.obtenerPorId(id)
                 .map(clienteWebMapper::toResponse)
                 .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public Mono<ResponseEntity<ClienteResponse>> crear(@Valid @RequestBody ClienteRequest request) {
+    public ResponseEntity<ClienteResponse> crear(@Valid @RequestBody ClienteRequest request) {
         Cliente cliente = clienteWebMapper.toDomain(request);
-        cliente.setIdCliente(0);
-        return clienteUseCase.guardar(cliente)
-                .map(clienteWebMapper::toResponse)
-                .map(ResponseEntity::ok);
+        cliente.setIdCliente(null); // null en vez de 0 para que JPA haga INSERT
+        Cliente creado = clienteUseCase.guardar(cliente);
+        return ResponseEntity.ok(clienteWebMapper.toResponse(creado));
     }
 
     @PutMapping("/{id}")
-    public Mono<ResponseEntity<ClienteResponse>> actualizar(@PathVariable Integer id,
-                                                            @Valid @RequestBody ClienteRequest request) {
+    public ResponseEntity<ClienteResponse> actualizar(@PathVariable Integer id,
+                                                      @Valid @RequestBody ClienteRequest request) {
         Cliente cliente = clienteWebMapper.toDomain(request);
         cliente.setIdCliente(id);
-        return clienteUseCase.guardar(cliente)
-                .map(clienteWebMapper::toResponse)
-                .map(ResponseEntity::ok);
+        Cliente actualizado = clienteUseCase.guardar(cliente);
+        return ResponseEntity.ok(clienteWebMapper.toResponse(actualizado));
     }
 
     @DeleteMapping("/{id}")
-    public Mono<ResponseEntity<Void>> eliminar(@PathVariable Integer id) {
-        return clienteUseCase.eliminar(id)
-                .thenReturn(ResponseEntity.noContent().build());
+    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
+        clienteUseCase.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }

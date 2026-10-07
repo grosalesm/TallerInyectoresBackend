@@ -1,34 +1,39 @@
 package com.taller.catalogos.infrastructure.persistence.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table("mecanicos")
+@Entity
+@Table(name = "mecanicos")
 public class MecanicoEntity {
 
     @Id
-    @Column("id_mecanico")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_mecanico")
     private Integer idMecanico;
 
-    @Column("nombres")
+    @Column(name = "nombres", nullable = false)
     private String nombres;
 
-    @Column("apellidos")
+    @Column(name = "apellidos", nullable = false)
     private String apellidos;
 
-    @Column("especialidad")
+    @Column(name = "especialidad")
     private String especialidad;
 
-    @Column("telefono")
+    @Column(name = "telefono")
     private String telefono;
 
-    @Column("activo")
+    @Column(name = "activo")
     private Boolean activo;
 }

@@ -1,9 +1,8 @@
 package com.taller.reportes.application.port.outservice;
 
-import reactor.core.publisher.Flux;
-
+import java.util.List;
 import java.util.Map;
 
 public interface ClienteOutService {
-    Flux<Map<String, Object>> listarTodos();
+    List<Map<String, Object>> listarTodos();
 }

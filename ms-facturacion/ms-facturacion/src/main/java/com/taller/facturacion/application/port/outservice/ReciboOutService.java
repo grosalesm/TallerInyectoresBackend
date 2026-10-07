@@ -1,14 +1,15 @@
 package com.taller.facturacion.application.port.outservice;
 
 import com.taller.facturacion.domain.bean.Recibo;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface ReciboOutService {
-    Flux<Recibo> listar();
-    Flux<Recibo> listarPorMes(int mes, int anio);
-    Mono<Recibo> obtenerPorId(Integer id);
-    Mono<Recibo> obtenerPorOrden(Integer idOrden);
-    Mono<Recibo> insertar(Recibo recibo);
-    Mono<Long> contarRecibos();
+    List<Recibo> listar();
+    List<Recibo> listarPorMes(int mes, int anio);
+    Optional<Recibo> obtenerPorId(Integer id);
+    Optional<Recibo> obtenerPorOrden(Integer idOrden);
+    Recibo insertar(Recibo recibo);
+    Long contarRecibos();
 }

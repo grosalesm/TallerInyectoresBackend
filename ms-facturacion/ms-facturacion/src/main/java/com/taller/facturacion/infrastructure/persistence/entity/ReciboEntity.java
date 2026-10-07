@@ -1,39 +1,44 @@
 package com.taller.facturacion.infrastructure.persistence.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table("recibos")
+@Entity
+@Table(name = "recibos")
 public class ReciboEntity {
 
     @Id
-    @Column("id_recibo")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_recibo")
     private Integer idRecibo;
 
-    @Column("id_orden")
+    @Column(name = "id_orden")
     private Integer idOrden;
 
-    @Column("fecha_pago")
+    @Column(name = "fecha_pago")
     private LocalDateTime fechaPago;
 
-    @Column("monto")
+    @Column(name = "monto")
     private Double monto;
 
-    @Column("metodo_pago")
+    @Column(name = "metodo_pago")
     private String metodoPago;
 
-    @Column("num_operacion")
+    @Column(name = "num_operacion")
     private String numOperacion;
 
-    @Column("numero_recibo")
+    @Column(name = "numero_recibo")
     private String numeroRecibo;
 }

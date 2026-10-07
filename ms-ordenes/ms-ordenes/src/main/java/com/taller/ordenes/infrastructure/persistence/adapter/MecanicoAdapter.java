@@ -1,38 +1,38 @@
 package com.taller.ordenes.infrastructure.persistence.adapter;
 
 import com.taller.ordenes.application.port.outservice.MecanicoOutService;
+import com.taller.ordenes.infrastructure.client.CatalogoFeignClient;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 @Component
 @RequiredArgsConstructor
 public class MecanicoAdapter implements MecanicoOutService {
 
-    private final WebClient.Builder webClientBuilder;
+    private final CatalogoFeignClient catalogoFeignClient;
 
     @Override
-    public Mono<Boolean> existeMecanico(Integer idMecanico) {
-        return webClientBuilder.build()
-                .get()
-                .uri("lb://ms-catalogos/api/mecanico/{id}", idMecanico)
-                .retrieve()
-                .bodyToMono(MecanicoDto.class)
-                .map(m -> true)
-                .onErrorReturn(false);
+    @CircuitBreaker(name = "ms-catalogos", fallbackMethod = "existeMecanicoFallback")
+    public boolean existeMecanico(Integer idMecanico) {
+        return catalogoFeignClient.obtenerMecanico(idMecanico) != null;
+    }
+
+    public boolean existeMecanicoFallback(Integer idMecanico, Throwable t) {
+        return false;
     }
 
     @Override
-    public Mono<String> obtenerNombreMecanico(Integer idMecanico) {
-        return webClientBuilder.build()
-                .get()
-                .uri("lb://ms-catalogos/api/mecanico/{id}", idMecanico)
-                .retrieve()
-                .bodyToMono(MecanicoDto.class)
-                .map(m -> (m.nombres() + " " + m.apellidos()).trim())
-                .onErrorReturn("");
+    @CircuitBreaker(name = "ms-catalogos", fallbackMethod = "obtenerNombreMecanicoFallback")
+    public String obtenerNombreMecanico(Integer idMecanico) {
+        CatalogoFeignClient.MecanicoDto dto = catalogoFeignClient.obtenerMecanico(idMecanico);
+        if (dto == null) return "";
+        String nombres = dto.nombres() != null ? dto.nombres() : "";
+        String apellidos = dto.apellidos() != null ? dto.apellidos() : "";
+        return (nombres + " " + apellidos).trim();
     }
 
-    public record MecanicoDto(Integer idMecanico, String nombres, String apellidos, String especialidad, String telefono, Boolean activo) {}
+    public String obtenerNombreMecanicoFallback(Integer idMecanico, Throwable t) {
+        return "";
+    }
 }

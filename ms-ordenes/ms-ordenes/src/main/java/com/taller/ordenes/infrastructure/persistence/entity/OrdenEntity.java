@@ -1,42 +1,47 @@
 package com.taller.ordenes.infrastructure.persistence.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table("ordenes")
+@Entity
+@Table(name = "ordenes")
 public class OrdenEntity {
 
     @Id
-    @Column("id_orden")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_orden")
     private Integer idOrden;
 
-    @Column("id_cliente")
+    @Column(name = "id_cliente")
     private Integer idCliente;
 
-    @Column("id_mecanico")
+    @Column(name = "id_mecanico")
     private Integer idMecanico;
 
-    @Column("fecha_ingreso")
+    @Column(name = "fecha_ingreso")
     private LocalDateTime fechaIngreso;
 
-    @Column("fecha_salida")
+    @Column(name = "fecha_salida")
     private LocalDateTime fechaSalida;
 
-    @Column("observaciones")
+    @Column(name = "observaciones")
     private String observaciones;
 
-    @Column("estado")
+    @Column(name = "estado")
     private String estado;
 
-    @Column("total")
+    @Column(name = "total")
     private Double total;
 }

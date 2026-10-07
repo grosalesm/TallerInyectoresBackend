@@ -7,7 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Flux;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/catalogo")
@@ -18,7 +19,9 @@ public class CatalogoClienteController {
     private final ClienteWebMapper clienteWebMapper;
 
     @GetMapping("/clientes")
-    public Flux<ClienteResponse> clientes() {
-        return clienteUseCase.listar().map(clienteWebMapper::toResponse);
+    public List<ClienteResponse> clientes() {
+        return clienteUseCase.listar().stream()
+                .map(clienteWebMapper::toResponse)
+                .toList();
     }
 }

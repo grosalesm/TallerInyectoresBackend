@@ -7,8 +7,10 @@ import com.taller.catalogos.domain.bean.Mecanico;
 import com.taller.catalogos.domain.constraint.MecanicoConstraints;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -19,38 +21,42 @@ public class MecanicoService implements MecanicoUseCase {
     private final CatalogoEventOutService catalogoEventOutService;
 
     @Override
-    public Flux<Mecanico> listar() {
+    public List<Mecanico> listar() {
         return mecanicoOutService.listar();
     }
 
     @Override
-    public Flux<Mecanico> listarActivos() {
+    public List<Mecanico> listarActivos() {
         return mecanicoOutService.listarActivos();
     }
 
     @Override
-    public Mono<Mecanico> obtenerPorId(Integer id) {
+    public Optional<Mecanico> obtenerPorId(Integer id) {
         return mecanicoOutService.obtenerPorId(id);
     }
 
     @Override
-    public Mono<Mecanico> guardar(Mecanico mecanico) {
+    @Transactional
+    public Mecanico guardar(Mecanico mecanico) {
         if (!mecanicoConstraints.validar(mecanico)) {
-            return Mono.error(new IllegalArgumentException("El nombre y el apellido son obligatorios."));
+            throw new IllegalArgumentException("El nombre y el apellido son obligatorios.");
         }
         boolean esNuevo = mecanico.getIdMecanico() == null || mecanico.getIdMecanico() == 0;
         if (esNuevo) {
-            mecanico.setIdMecanico(0);
+            mecanico.setIdMecanico(null);
             if (mecanico.getActivo() == null) mecanico.setActivo(true);
-            return mecanicoOutService.insertar(mecanico)
-                    .doOnNext(catalogoEventOutService::publicarMecanicoActualizado);
+            Mecanico creado = mecanicoOutService.insertar(mecanico);
+            catalogoEventOutService.publicarMecanicoActualizado(creado);
+            return creado;
         }
-        return mecanicoOutService.actualizar(mecanico)
-                .doOnNext(catalogoEventOutService::publicarMecanicoActualizado);
+        Mecanico actualizado = mecanicoOutService.actualizar(mecanico);
+        catalogoEventOutService.publicarMecanicoActualizado(actualizado);
+        return actualizado;
     }
 
     @Override
-    public Mono<Void> eliminar(Integer id) {
-        return mecanicoOutService.eliminar(id);
+    @Transactional
+    public void eliminar(Integer id) {
+        mecanicoOutService.eliminar(id);
     }
 }

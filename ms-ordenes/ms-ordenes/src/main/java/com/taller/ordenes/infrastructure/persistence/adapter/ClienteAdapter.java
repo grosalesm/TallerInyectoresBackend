@@ -1,38 +1,38 @@
 package com.taller.ordenes.infrastructure.persistence.adapter;
 
 import com.taller.ordenes.application.port.outservice.ClienteOutService;
+import com.taller.ordenes.infrastructure.client.ClienteFeignClient;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 @Component
 @RequiredArgsConstructor
 public class ClienteAdapter implements ClienteOutService {
 
-    private final WebClient.Builder webClientBuilder;
+    private final ClienteFeignClient clienteFeignClient;
 
     @Override
-    public Mono<Boolean> existeCliente(Integer idCliente) {
-        return webClientBuilder.build()
-                .get()
-                .uri("lb://ms-clientes/api/cliente/{id}", idCliente)
-                .retrieve()
-                .bodyToMono(ClienteDto.class)
-                .map(c -> true)
-                .onErrorReturn(false);
+    @CircuitBreaker(name = "ms-clientes", fallbackMethod = "existeClienteFallback")
+    public boolean existeCliente(Integer idCliente) {
+        return clienteFeignClient.obtenerCliente(idCliente) != null;
+    }
+
+    public boolean existeClienteFallback(Integer idCliente, Throwable t) {
+        return false;
     }
 
     @Override
-    public Mono<String> obtenerNombreCliente(Integer idCliente) {
-        return webClientBuilder.build()
-                .get()
-                .uri("lb://ms-clientes/api/cliente/{id}", idCliente)
-                .retrieve()
-                .bodyToMono(ClienteDto.class)
-                .map(c -> (c.nombres() + " " + c.apellidos()).trim())
-                .onErrorReturn("");
+    @CircuitBreaker(name = "ms-clientes", fallbackMethod = "obtenerNombreClienteFallback")
+    public String obtenerNombreCliente(Integer idCliente) {
+        ClienteFeignClient.ClienteDto dto = clienteFeignClient.obtenerCliente(idCliente);
+        if (dto == null) return "";
+        String nombres = dto.nombres() != null ? dto.nombres() : "";
+        String apellidos = dto.apellidos() != null ? dto.apellidos() : "";
+        return (nombres + " " + apellidos).trim();
     }
 
-    public record ClienteDto(Integer idCliente, String nombres, String apellidos, String dni) {}
+    public String obtenerNombreClienteFallback(Integer idCliente, Throwable t) {
+        return "";
+    }
 }

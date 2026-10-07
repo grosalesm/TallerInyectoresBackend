@@ -1,11 +1,11 @@
 package com.taller.ordenes.application.port.usecase;
 
 import com.taller.ordenes.domain.bean.DetalleServicio;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 public interface DetalleServicioUseCase {
-    Flux<DetalleServicio> listarPorOrden(Integer idOrden);
-    Mono<Void> agregar(Integer idOrden, DetalleServicio detalle);
-    Mono<Void> eliminar(Integer idDetalle);
+    List<DetalleServicio> listarPorOrden(Integer idOrden);
+    void agregar(Integer idOrden, DetalleServicio detalle);
+    void eliminar(Integer idDetalle);
 }

@@ -3,69 +3,71 @@ package com.taller.ordenes.infrastructure.persistence.adapter;
 import com.taller.ordenes.application.port.outservice.OrdenOutService;
 import com.taller.ordenes.domain.bean.Orden;
 import com.taller.ordenes.infrastructure.mapper.OrdenMapper;
-import com.taller.ordenes.infrastructure.persistence.repository.OrdenR2dbcRepository;
+import com.taller.ordenes.infrastructure.persistence.entity.OrdenEntity;
+import com.taller.ordenes.infrastructure.persistence.repository.DetalleServicioRepository;
+import com.taller.ordenes.infrastructure.persistence.repository.OrdenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
 public class OrdenAdapter implements OrdenOutService {
 
-    private final OrdenR2dbcRepository repository;
+    private final OrdenRepository repository;
+    private final DetalleServicioRepository detalleServicioRepository;
     private final OrdenMapper mapper;
 
     @Override
-    public Flux<Orden> listar() {
-        return repository.findAll().map(mapper::toDomain);
+    public List<Orden> listar() {
+        return repository.findAll().stream().map(mapper::toDomain).toList();
     }
 
     @Override
-    public Flux<Orden> listarPorEstado(String estado) {
-        return repository.findByEstado(estado).map(mapper::toDomain);
+    public List<Orden> listarPorEstado(String estado) {
+        return repository.findByEstadoOrderByFechaIngresoDesc(estado).stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 
     @Override
-    public Mono<Orden> obtenerPorId(Integer id) {
+    public Optional<Orden> obtenerPorId(Integer id) {
         return repository.findById(id).map(mapper::toDomain);
     }
 
     @Override
-    public Mono<Orden> insertar(Orden orden) {
+    public Orden insertar(Orden orden) {
         orden.setIdOrden(null);
         orden.setFechaIngreso(LocalDateTime.now());
         orden.setTotal(0.0);
-        return repository.save(mapper.toEntity(orden)).map(mapper::toDomain);
+        return mapper.toDomain(repository.save(mapper.toEntity(orden)));
     }
 
     @Override
-    public Mono<Void> cambiarEstado(Integer idOrden, String estado) {
-        return repository.findById(idOrden)
-                .flatMap(entity -> {
-                    entity.setEstado(estado);
-                    if ("Pagado".equalsIgnoreCase(estado)) {
-                        entity.setFechaSalida(LocalDateTime.now());
-                    }
-                    return repository.save(entity);
-                })
-                .then();
+    public void cambiarEstado(Integer idOrden, String estado) {
+        OrdenEntity entity = repository.findById(idOrden)
+                .orElseThrow(() -> new IllegalArgumentException("Orden no encontrada: " + idOrden));
+        entity.setEstado(estado);
+        if ("Pagado".equalsIgnoreCase(estado)) {
+            entity.setFechaSalida(LocalDateTime.now());
+        }
+        repository.save(entity);
     }
 
     @Override
-    public Mono<Void> actualizarTotal(Integer idOrden, Double total) {
-        return repository.findById(idOrden)
-                .flatMap(entity -> {
-                    entity.setTotal(total);
-                    return repository.save(entity);
-                })
-                .then();
+    public void actualizarTotal(Integer idOrden, Double total) {
+        OrdenEntity entity = repository.findById(idOrden)
+                .orElseThrow(() -> new IllegalArgumentException("Orden no encontrada: " + idOrden));
+        entity.setTotal(total);
+        repository.save(entity);
     }
 
     @Override
-    public Mono<Double> calcularTotalPorOrden(Integer idOrden) {
-        return repository.calcularTotalPorOrden(idOrden).defaultIfEmpty(0.0);
+    public Double calcularTotalPorOrden(Integer idOrden) {
+        Double total = detalleServicioRepository.calcularTotalPorOrden(idOrden);
+        return total != null ? total : 0.0;
     }
 }

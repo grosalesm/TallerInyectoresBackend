@@ -14,9 +14,15 @@ import com.taller.facturacion.infrastructure.mapper.ReciboWebMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/recibo")
@@ -31,73 +37,75 @@ public class ReciboController {
     private final ReciboWebMapper reciboWebMapper;
 
     @GetMapping
-    public Flux<ReciboResponse> listar() {
-        return reciboUseCase.listar().flatMap(this::enriquecerConDatosExternos);
+    public List<ReciboResponse> listar() {
+        return reciboUseCase.listar().stream()
+                .map(this::enriquecerConDatosExternos)
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public Mono<ResponseEntity<ReciboResponse>> obtenerPorId(@PathVariable Integer id) {
+    public ResponseEntity<ReciboResponse> obtenerPorId(@PathVariable Integer id) {
         return reciboUseCase.obtenerPorId(id)
-                .flatMap(this::enriquecerConDatosExternos)
+                .map(this::enriquecerConDatosExternos)
                 .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/orden/{idOrden}")
-    public Mono<ResponseEntity<ReciboResponse>> obtenerPorOrden(@PathVariable Integer idOrden) {
+    public ResponseEntity<ReciboResponse> obtenerPorOrden(@PathVariable Integer idOrden) {
         return reciboUseCase.obtenerPorOrden(idOrden)
-                .flatMap(this::enriquecerConDatosExternos)
+                .map(this::enriquecerConDatosExternos)
                 .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build());
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping("/mes/{mes}/{anio}")
-    public Flux<ReciboResponse> listarPorMes(@PathVariable int mes, @PathVariable int anio) {
-        return reciboUseCase.listarPorMes(mes, anio).flatMap(this::enriquecerConDatosExternos);
+    public List<ReciboResponse> listarPorMes(@PathVariable int mes, @PathVariable int anio) {
+        return reciboUseCase.listarPorMes(mes, anio).stream()
+                .map(this::enriquecerConDatosExternos)
+                .toList();
     }
 
     @PostMapping
-    public Mono<ResponseEntity<RespuestaPago>> registrar(@Valid @RequestBody PeticionPago request) {
-        return reciboUseCase.registrar(request.getIdOrden(), request.getMetodoPago(), request.getNumOperacion())
-                .flatMap(this::enriquecerConDatosExternos)
-                .map(response -> {
-                    RespuestaPago respuesta = new RespuestaPago();
-                    respuesta.setMensaje("Pago registrado correctamente.");
-                    respuesta.setRecibo(response);
-                    return ResponseEntity.ok(respuesta);
-                });
+    public ResponseEntity<RespuestaPago> registrar(@Valid @RequestBody PeticionPago request) {
+        Recibo recibo = reciboUseCase.registrar(
+                request.getIdOrden(), request.getMetodoPago(), request.getNumOperacion());
+        ReciboResponse response = enriquecerConDatosExternos(recibo);
+
+        RespuestaPago respuesta = new RespuestaPago();
+        respuesta.setMensaje("Pago registrado correctamente.");
+        respuesta.setRecibo(response);
+        return ResponseEntity.ok(respuesta);
     }
 
-    private Mono<ReciboResponse> enriquecerConDatosExternos(Recibo recibo) {
+    private ReciboResponse enriquecerConDatosExternos(Recibo recibo) {
         ReciboResponse response = reciboWebMapper.toResponse(recibo);
 
-        Mono<OrdenInfo> ordenMono = ordenOutService.obtenerOrden(recibo.getIdOrden())
-                .defaultIfEmpty(new OrdenInfo());
+        OrdenInfo orden = ordenOutService.obtenerOrden(recibo.getIdOrden())
+                .orElse(new OrdenInfo());
 
-        return ordenMono.flatMap(orden -> {
-            Mono<String> nombreClienteMono = orden.getIdCliente() != null
-                    ? clienteOutService.obtenerNombreCliente(orden.getIdCliente()).defaultIfEmpty("")
-                    : Mono.just("");
-            Mono<String> dniClienteMono = orden.getIdCliente() != null
-                    ? clienteOutService.obtenerDniCliente(orden.getIdCliente()).defaultIfEmpty("")
-                    : Mono.just("");
-            Mono<String> nombreMecanicoMono = orden.getIdMecanico() != null
-                    ? mecanicoOutService.obtenerNombreMecanico(orden.getIdMecanico()).defaultIfEmpty("")
-                    : Mono.just("");
-            Mono<java.util.List<java.util.Map<String, Object>>> inyectoresMono =
-                    detalleOutService.obtenerInyectoresPorOrden(recibo.getIdOrden()).defaultIfEmpty(java.util.List.of());
-            Mono<java.util.List<java.util.Map<String, Object>>> serviciosMono =
-                    detalleOutService.obtenerServiciosPorOrden(recibo.getIdOrden()).defaultIfEmpty(java.util.List.of());
+        String nombreCliente = "";
+        String dniCliente = "";
+        if (orden.getIdCliente() != null) {
+            nombreCliente = clienteOutService.obtenerNombreCliente(orden.getIdCliente());
+            dniCliente = clienteOutService.obtenerDniCliente(orden.getIdCliente());
+        }
 
-            return Mono.zip(nombreClienteMono, dniClienteMono, nombreMecanicoMono, inyectoresMono, serviciosMono)
-                    .map(tuple -> {
-                        response.setNombreCliente(tuple.getT1());
-                        response.setDniCliente(tuple.getT2());
-                        response.setNombreMecanico(tuple.getT3());
-                        response.setInyectores(tuple.getT4());
-                        response.setServicios(tuple.getT5());
-                        return response;
-                    });
-        });
+        String nombreMecanico = "";
+        if (orden.getIdMecanico() != null) {
+            nombreMecanico = mecanicoOutService.obtenerNombreMecanico(orden.getIdMecanico());
+        }
+
+        List<Map<String, Object>> inyectores =
+                detalleOutService.obtenerInyectoresPorOrden(recibo.getIdOrden());
+        List<Map<String, Object>> servicios =
+                detalleOutService.obtenerServiciosPorOrden(recibo.getIdOrden());
+
+        response.setNombreCliente(nombreCliente != null ? nombreCliente : "");
+        response.setDniCliente(dniCliente != null ? dniCliente : "");
+        response.setNombreMecanico(nombreMecanico != null ? nombreMecanico : "");
+        response.setInyectores(inyectores != null ? inyectores : List.of());
+        response.setServicios(servicios != null ? servicios : List.of());
+        return response;
     }
 }

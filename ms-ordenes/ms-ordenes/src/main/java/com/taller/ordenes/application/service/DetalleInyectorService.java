@@ -7,8 +7,9 @@ import com.taller.ordenes.domain.bean.DetalleInyector;
 import com.taller.ordenes.domain.constraint.DetalleInyectorConstraints;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -19,39 +20,35 @@ public class DetalleInyectorService implements DetalleInyectorUseCase {
     private final DetalleInyectorConstraints detalleInyectorConstraints;
 
     @Override
-    public Flux<DetalleInyector> listarPorOrden(Integer idOrden) {
-        return detalleInyectorOutService.listarPorOrden(idOrden)
-                .flatMap(this::enriquecerConDatosCatalogo);
+    public List<DetalleInyector> listarPorOrden(Integer idOrden) {
+        List<DetalleInyector> lista = detalleInyectorOutService.listarPorOrden(idOrden);
+        lista.forEach(this::enriquecerConDatosCatalogo);
+        return lista;
     }
 
     @Override
-    public Mono<Void> agregar(Integer idOrden, DetalleInyector detalle) {
+    @Transactional
+    public void agregar(Integer idOrden, DetalleInyector detalle) {
         if (!detalleInyectorConstraints.validar(detalle)) {
-            return Mono.error(new IllegalArgumentException("Datos del inyector inválidos."));
+            throw new IllegalArgumentException("Datos del inyector inválidos.");
         }
-        return catalogoOutService.existeInyector(detalle.getIdInyector())
-                .flatMap(existe -> {
-                    if (Boolean.FALSE.equals(existe)) {
-                        return Mono.error(new IllegalArgumentException("El inyector no existe."));
-                    }
-                    detalle.setIdOrden(idOrden);
-                    return detalleInyectorOutService.guardar(detalle);
-                })
-                .then();
+        if (!catalogoOutService.existeInyector(detalle.getIdInyector())) {
+            throw new IllegalArgumentException("El inyector no existe.");
+        }
+        detalle.setIdOrden(idOrden);
+        detalleInyectorOutService.guardar(detalle);
     }
 
     @Override
-    public Mono<Void> eliminar(Integer idDetalle) {
-        return detalleInyectorOutService.eliminar(idDetalle);
+    @Transactional
+    public void eliminar(Integer idDetalle) {
+        detalleInyectorOutService.eliminar(idDetalle);
     }
 
-    private Mono<DetalleInyector> enriquecerConDatosCatalogo(DetalleInyector detalle) {
-        Mono<String> modelo = catalogoOutService.obtenerModeloInyector(detalle.getIdInyector()).defaultIfEmpty("");
-        Mono<String> marca = catalogoOutService.obtenerMarcaInyector(detalle.getIdInyector()).defaultIfEmpty("");
-        return Mono.zip(modelo, marca).map(tuple -> {
-            detalle.setModeloInyector(tuple.getT1());
-            detalle.setMarcaInyector(tuple.getT2());
-            return detalle;
-        });
+    private void enriquecerConDatosCatalogo(DetalleInyector detalle) {
+        String modelo = catalogoOutService.obtenerModeloInyector(detalle.getIdInyector());
+        String marca = catalogoOutService.obtenerMarcaInyector(detalle.getIdInyector());
+        detalle.setModeloInyector(modelo != null ? modelo : "");
+        detalle.setMarcaInyector(marca != null ? marca : "");
     }
 }

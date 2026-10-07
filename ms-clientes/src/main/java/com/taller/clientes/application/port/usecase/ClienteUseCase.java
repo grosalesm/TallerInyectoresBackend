@@ -1,12 +1,13 @@
 package com.taller.clientes.application.port.usecase;
 
 import com.taller.clientes.domain.bean.Cliente;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface ClienteUseCase {
-    Flux<Cliente> listar();
-    Mono<Cliente> obtenerPorId(Integer id);
-    Mono<Cliente> guardar(Cliente cliente);
-    Mono<Void> eliminar(Integer id);
+    List<Cliente> listar();
+    Optional<Cliente> obtenerPorId(Integer id);
+    Cliente guardar(Cliente cliente);
+    void eliminar(Integer id);
 }

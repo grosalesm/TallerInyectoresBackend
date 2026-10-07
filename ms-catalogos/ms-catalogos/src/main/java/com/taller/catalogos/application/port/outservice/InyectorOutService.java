@@ -1,14 +1,15 @@
 package com.taller.catalogos.application.port.outservice;
 
 import com.taller.catalogos.domain.bean.Inyector;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface InyectorOutService {
-    Flux<Inyector> listar();
-    Flux<Inyector> listarActivos();
-    Mono<Inyector> obtenerPorId(Integer id);
-    Mono<Inyector> insertar(Inyector inyector);
-    Mono<Inyector> actualizar(Inyector inyector);
-    Mono<Void> eliminar(Integer id);
+    List<Inyector> listar();
+    List<Inyector> listarActivos();
+    Optional<Inyector> obtenerPorId(Integer id);
+    Inyector insertar(Inyector inyector);
+    Inyector actualizar(Inyector inyector);
+    void eliminar(Integer id);
 }
